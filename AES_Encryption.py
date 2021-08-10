@@ -39,113 +39,21 @@ sboxInv = [
 		[0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d]
 		]
 
-class AES_Encryption():
+class SBOX_Calculator():
 
-	numOfRounds = 10
+	@staticmethod
+	def get_val_sbox(x, y):
+		return sbox[x][y]
+
+	@staticmethod
+	def get_val_invsbox(x, y):
+		return sboxInv[x][y]
+
+class Key():
 
 	def __init__(self):
-		self.key = self.generateInitialKey()
 		self.listofKeys = np.ndarray((11,4,4), np.int32)
-
-	def stateToString(self, state):
-		out = ""
-
-		for col in range(len(state[0])):
-
-			for row in range(len(state)):
-
-				out += str(state[col][row])
-
-				out += " "
-
-		return out
-
-
-	def encrypt(self, message):
-		states = self.generateBlock(message)
-
-		print("Original:")
-		#print(states[0])
-		print(self.stateToString(states[0]))
-
-
-		key = self.key
-
-		self.listofKeys[0] = key
-
-		states[0] = self.addRoundKey(states[0], key)
-
-		for x in range(0, self.numOfRounds-1):
-			
-			key = self.expandKey(key, x)
-			self.listofKeys[x+1] = key
-			
-			states[0] = self.do_encryption_round(states[0], x, key)
-			
-		key = self.expandKey(key, 9)
-		self.listofKeys[10] = key
-	
-		states[0] = self.do_encryption_final_round(states[0], key)
-
-		print("\nEncrypted:")
-		print(self.stateToString(states[0]))
-		#print(states[0])
-
-		self.cyphertext = states[0]
-
-	def decrypt(self):
-
-		key = self.listofKeys[-1]
-
-		ct = self.cyphertext
-
-		ct = self.do_decryption_final_round(ct, 9, key)
-		
-		for x in range(self.numOfRounds-1, 0, -1):
-			key = self.listofKeys[x]
-			ct = self.do_decryption_round(ct, x, key)
-
-
-		key = self.listofKeys[0]
-		ct = self.addRoundKey(ct, key)
-
-		print("\nDecrypted:")
-		print(self.stateToString(ct))
-
-	def do_decryption_round(self, state, i, key):
-
-		state = self.addRoundKey(state, key)
-		state = self.invMixColumns(state)
-
-		state = self.invShiftRows(state)
-		state = self.invSubBytes(state)
-
-		return state
-
-	def do_decryption_final_round(self, state, i, key):
-
-		state = self.addRoundKey(state, key)
-
-		state = self.invShiftRows(state)
-		state = self.invSubBytes(state)
-
-		return state
-		
-
-	def do_encryption_round(self, state, i, key):
-		state = self.subBytes(state)
-		state = self.shiftRows(state)	
-		state = self.mixColumns(state)
-
-		state = self.addRoundKey(state, key)
-		return state
-
-	def do_encryption_final_round(self, state, key):
-		state = self.subBytes(state)
-		state = self.shiftRows(state)
-
-		state = self.addRoundKey(state, key)
-		return state	
+		self.currentKey = np.ndarray((4,4), np.int32)
 
 	def generateInitialKey(self):
 		#self.key = bytearray(secrets.token_bytes(16))
@@ -154,7 +62,30 @@ class AES_Encryption():
 		key = np.reshape(key, (4, 4))
 		key = np.transpose(key)
 
-		return key
+		self.currentKey = key
+		self.listofKeys[0] = key
+
+	def expand(self, roundnum):
+
+		w3 = self.currentKey[:, 3:4]
+		w3 = np.reshape(w3, (4))
+
+		w3 = self.g(w3, roundnum)
+		w3 = np.reshape(w3, (4, 1))
+
+		w4 = self.currentKey[:, 0:1]
+
+		w4 = w4 ^ w3
+		w5 = w4 ^ self.currentKey[:, 1:2]
+		w6 = w5 ^ self.currentKey[:, 2:3]
+		w7 = w6 ^ self.currentKey[:, 3:4]
+
+		self.currentKey[:, 0:1] = w4
+		self.currentKey[:, 1:2] = w5
+		self.currentKey[:, 2:3] = w6
+		self.currentKey[:, 3:4] = w7
+
+		self.listofKeys[roundnum+1] = self.currentKey
 
 	def g(self, word, roundnum):
 
@@ -165,9 +96,9 @@ class AES_Encryption():
 			highnibble = (byte >> 4) & 0x0F
 			lownibble = byte & 0x0F
 
-			word[x] = sbox[highnibble][lownibble]
+			word[x] = SBOX_Calculator.get_val_sbox(highnibble, lownibble)
 
-		rcon = self.generateRcon(roundnum)
+		rcon = Rcon_Calculator().generateRcon(roundnum)
 
 		for x in range(len(word)):
 
@@ -179,57 +110,11 @@ class AES_Encryption():
 
 		return word
 
-	def expandKey(self, key, roundnum):
 
-		w3 = key[:, 3:4]
-		w3 = np.reshape(w3, (4))
+class Transformer():
 
-		w3 = self.g(w3, roundnum)
-		w3 = np.reshape(w3, (4, 1))
-
-		w4 = key[:, 0:1]
-
-		w4 = w4 ^ w3
-		w5 = w4 ^ key[:, 1:2]
-		w6 = w5 ^ key[:, 2:3]
-		w7 = w6 ^ key[:, 3:4]
-
-		key[:, 0:1] = w4
-		key[:, 1:2] = w5
-		key[:, 2:3] = w6
-		key[:, 3:4] = w7
-
-		return key
-
-	def generateBlock(self, string):
-
-		#padding if string < block size (16 bytes)
-		while (len(string) % 16 != 0):
-			string += '0'
-
-		
-		state = bytearray(string.encode('utf-8'))
-
-		state = np.reshape(state, (-1, 4, 4))
-		state = np.transpose(state, (0, 2, 1))
-
-		return state
-
-	def generateRcon(self, i):
-
-		if (i == 0):
-			rcon = 1
-			
-			return rcon
-		else:
-			rcon = 1	
-
-			for r in range(i):
-				rcon = self.mul2(rcon)
-			
-			return rcon
-
-	def subBytes(self, state):
+	@staticmethod
+	def subBytes(state):
 
 		for col in range(len(state)):
 
@@ -240,28 +125,28 @@ class AES_Encryption():
 				highnibble = (byte >> 4) & 0x0F
 				lownibble = byte & 0x0F
 
+				state[row][col] = SBOX_Calculator.get_val_sbox(highnibble, lownibble)
 
+		return state	
 
-				state[row][col] = sbox[highnibble][lownibble]
+	@staticmethod
+	def invSubBytes(state):
 
-		return state
+			for col in range(len(state)):
 
-	def invSubBytes(self, state):
+				for row in range(len(state)):
 
-		for col in range(len(state)):
+					byte = state[row][col]
 
-			for row in range(len(state)):
+					highnibble = (byte >> 4) & 0x0F
+					lownibble = byte & 0x0F
 
-				byte = state[row][col]
+					state[row][col] = SBOX_Calculator.get_val_invsbox(highnibble, lownibble)
 
-				highnibble = (byte >> 4) & 0x0F
-				lownibble = byte & 0x0F
+			return state
 
-				state[row][col] = sboxInv[highnibble][lownibble]
-
-		return state
-
-	def shiftRows(self, state):
+	@staticmethod
+	def shiftRows(state):
 
 		for x in range(len(state)):
 
@@ -269,7 +154,8 @@ class AES_Encryption():
 
 		return state
 
-	def invShiftRows(self, state):
+	@staticmethod
+	def invShiftRows(state):
 
 		for x in range(len(state)):
 
@@ -277,7 +163,42 @@ class AES_Encryption():
 
 		return state
 
-	def mul2(self, v):
+	@staticmethod
+	def mixColumns(state):
+		
+		for x in range(len(state)):
+
+			col = state[:, x:x+1]
+
+			colcopy = col.copy()
+
+			colcopy[0] = Transformer.mul2(col[0]) ^ Transformer.mul3(col[1]) ^ col[2] ^ col[3]
+			colcopy[1] = col[0] ^ Transformer.mul2(col[1]) ^ Transformer.mul3(col[2]) ^ col[3]
+			colcopy[2] = col[0] ^ col[1] ^ Transformer.mul2(col[2]) ^ Transformer.mul3(col[3])
+			colcopy[3] = Transformer.mul3(col[0]) ^ col[1] ^col[2] ^  Transformer.mul2(col[3])
+
+			state[:, x:x+1] = colcopy.copy()
+
+		return state
+	
+	@staticmethod	
+	def invMixColumns(state):
+		state = Transformer.mixColumns(state)
+		state = Transformer.mixColumns(state)
+		state = Transformer.mixColumns(state)
+
+		return state
+
+	@staticmethod
+	def addRoundKey(state, key):
+		
+		state = state ^ key
+
+		return state
+
+	@staticmethod
+	def mul2(v):
+
 		# Multiply by 2
 		s = v << 1
 
@@ -290,35 +211,149 @@ class AES_Encryption():
 
 		return s
 
-	def mul3(self, v):
-		return self.mul2(v) ^ v
+	@staticmethod
+	def mul3(v):
+		return Transformer.mul2(v) ^ v	
 
-	def mixColumns(self, state):
-		
-		for x in range(len(state)):
+class Rcon_Calculator():
 
-			col = state[:, x:x+1]
+	@staticmethod
+	def generateRcon(i):
 
-			colcopy = col.copy()
+		rcon = 1
 
-			colcopy[0] = self.mul2(col[0]) ^ self.mul3(col[1]) ^ col[2] ^ col[3]
-			colcopy[1] = col[0] ^self. mul2(col[1]) ^ self.mul3(col[2]) ^ col[3]
-			colcopy[2] = col[0] ^ col[1] ^ self.mul2(col[2]) ^ self.mul3(col[3])
-			colcopy[3] = self.mul3(col[0]) ^ col[1] ^col[2] ^  self.mul2(col[3])
+		if (i == 0):
+			return rcon
 
-			state[:, x:x+1] = colcopy.copy()
+		else:
 
-		return state
+			for r in range(i):
+				rcon = Transformer.mul2(rcon)
 			
-	def invMixColumns(self, state):
-		state = self.mixColumns(state)
-		state = self.mixColumns(state)
-		state = self.mixColumns(state)
+			return rcon
+
+class Round_Encryption():
+
+	@staticmethod
+	def do_encryption_round(state, key):
+
+		state = Transformer.subBytes(state)
+		state = Transformer.shiftRows(state)	
+		state = Transformer.mixColumns(state)
+		state = Transformer.addRoundKey(state, key)
+
+		return state	
+
+	@staticmethod
+	def do_encryption_final_round(state, key):
+
+		state = Transformer.subBytes(state)
+		state = Transformer.shiftRows(state)
+		state = Transformer.addRoundKey(state, key)
+
+		return state	
+
+class Round_Decryption():
+
+	@staticmethod
+	def do_decryption_round(state, key):
+
+		state = Transformer.addRoundKey(state, key)
+		state = Transformer.invMixColumns(state)
+		state = Transformer.invShiftRows(state)
+		state = Transformer.invSubBytes(state)
 
 		return state
 
-	def addRoundKey(self, state, key):
+	@staticmethod
+	def do_decryption_first_round(state, key):
+
+		state = Transformer.addRoundKey(state, key)
+		state = Transformer.invShiftRows(state)
+		state = Transformer.invSubBytes(state)
+
+		return state
+
+class Block_Generator():
+
+	@staticmethod
+	def generate(string):
+
+		#padding if string < block size (16 bytes)
+		while (len(string) % 16 != 0):
+			string += '0'
 		
-		state = state ^ key
+		state = bytearray(string.encode('utf-8'))
+
+		state = np.reshape(state, (-1, 4, 4))
+		state = np.transpose(state, (0, 2, 1))
 
 		return state
+
+
+class AES_Encryption():
+
+	numOfRounds = 10
+
+	def __init__(self):
+		self.key = Key()
+		self.key.generateInitialKey()
+	
+	@staticmethod
+	def stateToString(state):
+
+		out = ""
+
+		for col in range(len(state[0])):
+
+			for row in range(len(state)):
+
+				out += str(state[row][col])
+
+				out += " "
+
+		return out
+
+
+	def encrypt(self, message):
+
+		states = Block_Generator.generate(message)
+
+		encryptedStates = []
+
+		for state in states:		
+
+			state = Transformer.addRoundKey(state, self.key.currentKey)
+
+			for r in range(0, self.numOfRounds-1):
+				self.key.expand(r)
+				state = Round_Encryption.do_encryption_round(state, self.key.currentKey)
+
+			self.key.expand(9)
+
+			state = Round_Encryption.do_encryption_final_round(state, self.key.currentKey)
+
+			encryptedStates.append(state)
+
+		return encryptedStates
+
+	def decrypt(self, states):
+
+		decryptedStates = []
+
+		for state in states:
+
+			currentKey = self.key.listofKeys[-1]
+
+			state = Round_Decryption.do_decryption_first_round(state, currentKey)
+
+			for r in range(self.numOfRounds-1, 0, -1):
+				currentKey = self.key.listofKeys[r]
+				state = Round_Decryption.do_decryption_round(state, currentKey)
+
+			currentKey = self.key.listofKeys[0]
+			state = Transformer.addRoundKey(state, currentKey)
+
+			decryptedStates.append(state)
+
+		return decryptedStates
