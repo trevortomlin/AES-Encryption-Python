@@ -47,12 +47,27 @@ class AES_Encryption():
 		self.key = self.generateInitialKey()
 		self.listofKeys = np.ndarray((11,4,4), np.int32)
 
+	def stateToString(self, state):
+		out = ""
+
+		for col in range(len(state[0])):
+
+			for row in range(len(state)):
+
+				out += str(state[col][row])
+
+				out += " "
+
+		return out
+
 
 	def encrypt(self, message):
 		states = self.generateBlock(message)
 
-		print("Orig")
-		print(states[0])
+		print("Original:")
+		#print(states[0])
+		print(self.stateToString(states[0]))
+
 
 		key = self.key
 
@@ -72,8 +87,9 @@ class AES_Encryption():
 	
 		states[0] = self.do_encryption_final_round(states[0], key)
 
-		print("\nFinal")
-		print(states[0])
+		print("\nEncrypted:")
+		print(self.stateToString(states[0]))
+		#print(states[0])
 
 		self.cyphertext = states[0]
 
@@ -93,8 +109,8 @@ class AES_Encryption():
 		key = self.listofKeys[0]
 		ct = self.addRoundKey(ct, key)
 
-		print("\nFinal")
-		print(ct)
+		print("\nDecrypted:")
+		print(self.stateToString(ct))
 
 	def do_decryption_round(self, state, i, key):
 
