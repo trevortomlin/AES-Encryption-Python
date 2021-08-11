@@ -1,17 +1,40 @@
 import numpy as np
+import secrets
 
 from SBOX_Calculator import SBOX_Calculator
 from Rcon_Calculator import Rcon_Calculator
 
 class Key():
+	"""
+	Description:
+
+		Key class for AES
+
+	Functions:
+
+		generateInitialKey
+		expand
+		g
+
+	Variables:
+
+		currentKey
+		listOfKeys
+
+	"""
 
 	def __init__(self):
 		self.listofKeys = np.ndarray((11,4,4), np.int32)
 		self.currentKey = np.ndarray((4,4), np.int32)
 
-	def generateInitialKey(self):
-		#self.key = bytearray(secrets.token_bytes(16))
-		key = list("Thats my Kung Fu".encode('utf-8'))
+	def generateInitialKey(self, userKey):
+		"""Either uses key from user or generates key and stores in in currentKey and listOfKeys."""
+
+		# If user doesnt supply key then generate random key with CSPRNG
+		if userKey == None:
+			key = bytearray(secrets.token_bytes(16))
+		else:
+			key = list(userKey.encode('utf-8'))
 
 		key = np.reshape(key, (4, 4))
 		key = np.transpose(key)
@@ -20,6 +43,7 @@ class Key():
 		self.listofKeys[0] = key
 
 	def expand(self, roundnum):
+		"""Expand the key according to the Rijndael key schedule."""
 
 		w3 = self.currentKey[:, 3:4]
 		w3 = np.reshape(w3, (4))
@@ -42,6 +66,7 @@ class Key():
 		self.listofKeys[roundnum+1] = self.currentKey
 
 	def g(self, word, roundnum):
+		"""Helper function for expand function."""
 
 		word = np.roll(word, -1)
 
@@ -60,6 +85,5 @@ class Key():
 				word[x] = word[x] ^ rcon
 			else:
 				word[x] = word[x] ^ 0
-
 
 		return word

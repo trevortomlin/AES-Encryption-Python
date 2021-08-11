@@ -37,6 +37,16 @@ sboxInv = [
 		]
 
 class SBOX_Calculator():
+	"""
+	Description:
+		Uses a lut to get value from the substitution boxes. (Expandable to calculate sboxes on the fly in the future).
+
+	Functions:
+
+		get_val_sbox -> bytes
+		get_val_invsbox -> bytes
+
+	"""
 
 	@staticmethod
 	def get_val_sbox(x, y):

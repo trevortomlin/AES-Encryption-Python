@@ -1,6 +1,15 @@
 import numpy as np
 
 class Block_Generator():
+	"""
+	Description:
+		Splits the user's message into blocks of 16 bytes.
+	
+	Functions:
+
+		generate -> 3d numpy array
+
+	"""
 
 	@staticmethod
 	def generate(string):
@@ -9,9 +18,9 @@ class Block_Generator():
 		while (len(string) % 16 != 0):
 			string += '0'
 		
-		state = bytearray(string.encode('utf-8'))
+		states = bytearray(string.encode('utf-8'))
 
-		state = np.reshape(state, (-1, 4, 4))
-		state = np.transpose(state, (0, 2, 1))
+		states = np.reshape(states, (-1, 4, 4))
+		states = np.transpose(states, (0, 2, 1))
 
-		return state
+		return states

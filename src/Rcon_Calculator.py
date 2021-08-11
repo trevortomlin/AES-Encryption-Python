@@ -1,6 +1,16 @@
 from Transformer import Transformer
 
 class Rcon_Calculator():
+	"""
+	Description:
+
+		Generate RCON on the fly.
+
+	Functions:
+
+		generateRcon -> int
+
+	"""
 
 	@staticmethod
 	def generateRcon(i):

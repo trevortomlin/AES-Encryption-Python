@@ -1,6 +1,17 @@
 from Transformer import Transformer
 
 class Round_Encryption():
+	"""
+	Description:
+
+		Performs the transformation that make up the encryption round on a state.
+
+	Functions:
+
+		do_encryption_round -> state
+		do_encryption_final_round -> state
+
+	"""
 
 	@staticmethod
 	def do_encryption_round(state, key):

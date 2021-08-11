@@ -1,4 +1,3 @@
-import secrets
 import numpy as np
 
 from Key import Key
@@ -7,69 +6,89 @@ from Round_Encryption import Round_Encryption
 from Round_Decryption import Round_Decryption
 from Transformer import Transformer
 
+
 class AES_Encryption():
+    """
+    Description:
 
-	numOfRounds = 10
+        Encrypt or decrypt a message using AES128 ECB.
 
-	def __init__(self):
-		self.key = Key()
-		self.key.generateInitialKey()
-	
-	@staticmethod
-	def stateToString(state):
+    Functions:
 
-		out = ""
+        stateToString(state) -> string
+        encrypt(message) -> list of 2d arrays
+        decrypt(message) -> list of 2d arrays 
+ 
+    Variables:
 
-		for col in range(len(state[0])):
+        numOfRounds
 
-			for row in range(len(state)):
+    """
+    # Rounds for AES128
+    numOfRounds = 10
 
-				out += str(state[row][col])
+    def __init__(self, userKey=None):
+        self.key = Key()
+        self.key.generateInitialKey(userKey)
 
-				out += " "
+    @staticmethod
+    def stateToString(state):
+        """Return string that represents state."""
 
-		return out
+        out = ""
 
+        for col in range(len(state[0])):
 
-	def encrypt(self, message):
+            for row in range(len(state)):
 
-		states = Block_Generator.generate(message)
+                out += str(state[row][col])
 
-		encryptedStates = []
+                out += " "
 
-		for state in states:		
+        return out
 
-			state = Transformer.addRoundKey(state, self.key.currentKey)
+    def encrypt(self, message):
+        """Encrypts message and returns list of states."""
 
-			for r in range(0, self.numOfRounds-1):
-				self.key.expand(r)
-				state = Round_Encryption.do_encryption_round(state, self.key.currentKey)
+        states = Block_Generator.generate(message)
 
-			self.key.expand(9)
+        encryptedStates = []
 
-			state = Round_Encryption.do_encryption_final_round(state, self.key.currentKey)
+        for state in states:
 
-			encryptedStates.append(state)
+            state = Transformer.addRoundKey(state, self.key.currentKey)
 
-		return encryptedStates
+            for r in range(0, self.numOfRounds - 1):
+                self.key.expand(r)
+                state = Round_Encryption.do_encryption_round(state, self.key.currentKey)
 
-	def decrypt(self, states):
+            self.key.expand(9)
 
-		decryptedStates = []
+            state = Round_Encryption.do_encryption_final_round(state, self.key.currentKey)
 
-		for state in states:
+            encryptedStates.append(state)
 
-			currentKey = self.key.listofKeys[-1]
+        return encryptedStates
 
-			state = Round_Decryption.do_decryption_first_round(state, currentKey)
+    def decrypt(self, states):
+        """Decrypts message and returns list of states."""
 
-			for r in range(self.numOfRounds-1, 0, -1):
-				currentKey = self.key.listofKeys[r]
-				state = Round_Decryption.do_decryption_round(state, currentKey)
+        decryptedStates = []
 
-			currentKey = self.key.listofKeys[0]
-			state = Transformer.addRoundKey(state, currentKey)
+        for state in states:
 
-			decryptedStates.append(state)
+            currentKey = self.key.listofKeys[-1]
 
-		return decryptedStates
+            state = Round_Decryption.do_decryption_first_round(
+                state, currentKey)
+
+            for r in range(self.numOfRounds - 1, 0, -1):
+                currentKey = self.key.listofKeys[r]
+                state = Round_Decryption.do_decryption_round(state, currentKey)
+
+            currentKey = self.key.listofKeys[0]
+            state = Transformer.addRoundKey(state, currentKey)
+
+            decryptedStates.append(state)
+
+        return decryptedStates

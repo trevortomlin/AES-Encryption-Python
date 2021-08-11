@@ -3,6 +3,24 @@ import numpy as np
 from SBOX_Calculator import SBOX_Calculator
 
 class Transformer():
+	"""
+	Description:
+
+		Provides functions for transforming the AES state.
+
+	Functions:
+
+		subBytes -> state
+		invSubBytes -> state
+		shiftRows -> state
+		invShiftRows -> state
+		mixColumns -> state
+		invMixColumns -> state
+		addRoundKey -> state
+		mul2 -> int
+		mul3 -> int
+	
+	"""
 
 	@staticmethod
 	def subBytes(state):
