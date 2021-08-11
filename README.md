@@ -18,7 +18,7 @@ text = "Two One Nine Two"
 ae = AES_Encryption(userKey="Thats my Kung Fu")
 
 ct = ae.encrypt(text)
-#encrypt returns a list of all encrypted blocks so this prints only the first one.
+#encrypt() returns a list of all encrypted blocks so this prints only the first one.
 print("Text Encrypted: ", AES_Encryption.stateToString(ct[0]))
 
 #decrypt() returns a list of all decrypted blocks so this prints only the first one.
